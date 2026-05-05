@@ -219,35 +219,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className={clsx(
-              "p-6 rounded-2xl shadow-sm border transition-colors",
-              kpis.outstanding > 0 ? "bg-red-50 border-red-100" : "bg-white border-gray-100"
-            )}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className={clsx(
-                    "text-sm font-medium mb-1",
-                    kpis.outstanding > 0 ? "text-red-600" : "text-gray-500"
-                  )}>المتبقي (المديونية)</p>
-                  <p className={clsx(
-                    "text-xl font-bold",
-                    kpis.outstanding > 0 ? "text-red-700" : "text-gray-900"
-                  )}>
-                    {formatCurrency(kpis.outstanding)}
-                  </p>
-                </div>
-                <div className={clsx(
-                  "w-10 h-10 rounded-full flex items-center justify-center",
-                  kpis.outstanding > 0 ? "bg-red-100" : "bg-gray-50"
-                )}>
-                  {kpis.outstanding > 0 ? (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  ) : (
-                    <CheckCircle2 className="w-5 h-5 text-gray-400" />
-                  )}
-                </div>
-              </div>
-            </div>
+
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

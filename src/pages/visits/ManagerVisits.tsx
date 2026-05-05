@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/auth/AuthProvider';
 import { useDebug } from '../../components/debug/DebugProvider';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -102,9 +102,14 @@ export default function ManagerVisits() {
             rep:user_profiles!visits_rep_id_fkey(full_name)
           `)
           .eq('company_id', profile.company_id)
-          .gte('visit_date', dateFrom)
-          .lte('visit_date', dateTo + 'T23:59:59')
           .order('visit_date', { ascending: false });
+
+        if (dateFrom) {
+          query = query.gte('visit_date', dateFrom);
+        }
+        if (dateTo) {
+          query = query.lte('visit_date', dateTo + 'T23:59:59');
+        }
 
         if (filterRepId !== 'all') {
           query = query.eq('rep_id', filterRepId);
@@ -208,7 +213,15 @@ export default function ManagerVisits() {
           </div>
         </div>
       </div>
-
+      <div className="flex flex-col gap-4">
+        {/* Quick Date Filters Header */}
+        <div className="flex flex-wrap gap-2 justify-end">
+          <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-white hover:border-primary hover:text-primary border border-transparent rounded-lg transition-all text-gray-700 font-medium">كل الوقت</button>
+          <button onClick={() => { setDateFrom(format(startOfMonth(new Date()), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(new Date()), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-white hover:border-primary hover:text-primary border border-transparent rounded-lg transition-all text-gray-700 font-medium">هذا الشهر</button>
+          <button onClick={() => { setDateFrom(format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-white hover:border-primary hover:text-primary border border-transparent rounded-lg transition-all text-gray-700 font-medium">الشهر السابق</button>
+          <button onClick={() => { setDateFrom(format(startOfMonth(subMonths(new Date(), 5)), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(new Date()), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-white hover:border-primary hover:text-primary border border-transparent rounded-lg transition-all text-gray-700 font-medium">آخر 6 أشهر</button>
+        </div>
+      </div>
       {/* Filters Bar */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-3 items-end">
         <div>

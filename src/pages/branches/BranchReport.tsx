@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/auth/AuthProvider';
 import { useDebug } from '../../components/debug/DebugProvider';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -29,6 +29,7 @@ export default function BranchReport() {
   const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [rows, setRows] = useState<BranchRow[]>([]);
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -118,8 +119,16 @@ export default function BranchReport() {
         }
       });
 
-      const result = Array.from(branchMap.values()).sort((a, b) => b.totalSales - a.totalSales);
+      const result = Array.from(branchMap.values()).sort((a, b) => {
+        const moneyA = a.totalSales + a.totalCollections;
+        const moneyB = b.totalSales + b.totalCollections;
+        if (moneyB !== moneyA) return moneyB - moneyA;
+        return b.totalVisits - a.totalVisits;
+      });
       setRows(result);
+      if (selectedBranches.length === 0 && result.length > 0) {
+        setSelectedBranches(result.map(r => r.id));
+      }
       logInfo('Branch report loaded', { branches: result.length });
     } catch (err) {
       logError('Error loading branch report', err);
@@ -128,11 +137,15 @@ export default function BranchReport() {
     }
   };
 
+  const filteredRows = useMemo(() => {
+    return rows.filter(r => selectedBranches.includes(r.id));
+  }, [rows, selectedBranches]);
+
   const totals = useMemo(() => ({
-    visits: rows.reduce((s, r) => s + r.totalVisits, 0),
-    sales: rows.reduce((s, r) => s + r.totalSales, 0),
-    collections: rows.reduce((s, r) => s + r.totalCollections, 0),
-  }), [rows]);
+    visits: filteredRows.reduce((s, r) => s + r.totalVisits, 0),
+    sales: filteredRows.reduce((s, r) => s + r.totalSales, 0),
+    collections: filteredRows.reduce((s, r) => s + r.totalCollections, 0),
+  }), [filteredRows]);
 
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 }).format(n);
@@ -154,30 +167,39 @@ export default function BranchReport() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">تقارير الفروع</h2>
           <p className="text-gray-500 mt-1 text-sm">مقارنة أداء الفروع من حيث المبيعات والزيارات</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">من</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
-            />
+        <div className="flex flex-col gap-3">
+          {/* Quick Filters */}
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button onClick={() => { setDateFrom('1970-01-01'); setDateTo(format(new Date(), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">كل الوقت</button>
+            <button onClick={() => { setDateFrom(format(startOfMonth(new Date()), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(new Date()), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">هذا الشهر</button>
+            <button onClick={() => { setDateFrom(format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">الشهر السابق</button>
+            <button onClick={() => { setDateFrom(format(startOfMonth(subMonths(new Date(), 5)), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(new Date()), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">آخر 6 أشهر</button>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">إلى</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
-            />
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">من</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:border-primary w-[140px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">إلى</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:border-primary w-[140px]"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -225,23 +247,52 @@ export default function BranchReport() {
         </div>
       ) : (
         <>
-          {/* Bar Chart — Sales & Collections by Branch */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-6">المبيعات والتحصيلات حسب الفرع</h3>
-            <div className="h-80 w-full" dir="ltr">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={rows} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name_ar" tick={{ fontSize: 12 }} />
-                  <YAxis />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar dataKey="totalSales" name="المبيعات" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="totalCollections" name="التحصيلات" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Branch Comparison Selector */}
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">اختر الفروع للمقارنة:</h3>
+            <div className="flex flex-wrap gap-2">
+              {rows.map(r => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    if (selectedBranches.includes(r.id)) {
+                      setSelectedBranches(selectedBranches.filter(id => id !== r.id));
+                    } else {
+                      setSelectedBranches([...selectedBranches, r.id]);
+                    }
+                  }}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
+                    selectedBranches.includes(r.id) 
+                      ? "bg-primary text-white border-primary shadow-sm" 
+                      : "bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary"
+                  )}
+                >
+                  {r.name_ar}
+                </button>
+              ))}
             </div>
           </div>
+
+          {/* Bar Chart — Sales & Collections by Branch */}
+          {filteredRows.length > 0 && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800 mb-6">المبيعات والتحصيلات للمقارنة</h3>
+              <div className="h-80 w-full" dir="ltr">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={filteredRows} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name_ar" tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar dataKey="totalSales" name="المبيعات" fill="#10B981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="totalCollections" name="التحصيلات" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* Comparison Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -259,21 +310,27 @@ export default function BranchReport() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {rows.map((r, i) => (
-                    <tr key={r.id} className={clsx('hover:bg-gray-50 transition-colors', i === 0 && 'bg-green-50/50')}>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm font-bold text-gray-900 flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-indigo-500" />
-                        {r.name_ar}
-                        {i === 0 && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">الأعلى</span>}
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.totalVisits}</td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.completedVisits}</td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">{formatCurrency(r.totalSales)}</td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">{formatCurrency(r.totalCollections)}</td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.clientCount}</td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.repCount}</td>
-                    </tr>
-                  ))}
+                  {filteredRows.map((r, index) => {
+                    // Overall rank from the original sorted `rows` array
+                    const overallRankIndex = rows.findIndex(row => row.id === r.id);
+                    const isTop1 = overallRankIndex === 0;
+
+                    return (
+                      <tr key={r.id} className={clsx('hover:bg-gray-50 transition-colors', isTop1 && 'bg-green-50/50')}>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm font-bold text-gray-900 flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-indigo-500" />
+                          {r.name_ar}
+                          {isTop1 && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold shadow-sm">المركز الأول 🥇</span>}
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.totalVisits}</td>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.completedVisits}</td>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700 font-medium text-green-600">{formatCurrency(r.totalSales)}</td>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700 font-medium text-blue-600">{formatCurrency(r.totalCollections)}</td>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.clientCount}</td>
+                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700">{r.repCount}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

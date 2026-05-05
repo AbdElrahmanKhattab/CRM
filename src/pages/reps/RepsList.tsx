@@ -254,6 +254,10 @@ export default function RepsList() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2">
                 {clients
                   .filter(c => {
+                    const repRegionId = (selectedRep as any)?.region_id;
+                    if (repRegionId && c.region_id !== repRegionId) {
+                      return false; // Skip if client is not in the rep's branch
+                    }
                     if (searchQuery) {
                       const q = searchQuery.toLowerCase();
                       return c.name_ar.toLowerCase().includes(q) || (c.region?.name_ar.toLowerCase().includes(q));

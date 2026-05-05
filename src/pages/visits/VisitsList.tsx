@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/auth/AuthProvider';
 import { useDebug } from '../../components/debug/DebugProvider';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { MapPin, Calendar, CheckCircle, Clock, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,12 +13,15 @@ export default function VisitsList() {
   const navigate = useNavigate();
   const [visits, setVisits] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [dateTo, setDateTo] = useState(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'));
 
   useEffect(() => {
     if (profile?.company_id) {
       loadVisits();
     }
-  }, [profile]);
+  }, [profile, dateFrom, dateTo]);
 
   const loadVisits = async () => {
     try {
@@ -42,6 +45,13 @@ export default function VisitsList() {
       if (profile?.role === 'rep') {
         query = query.eq('rep_id', profile.id);
       }
+      
+      if (dateFrom) {
+        query = query.gte('visit_date', dateFrom);
+      }
+      if (dateTo) {
+        query = query.lte('visit_date', dateTo + 'T23:59:59.999Z');
+      }
         
       const { data, error } = await query;
 
@@ -57,18 +67,49 @@ export default function VisitsList() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">سجل الزيارات</h2>
           <p className="text-gray-500 mt-1 text-sm">متابعة زيارات العملاء الميدانية</p>
         </div>
-        <Link
-          to="/visits/new"
-          className="bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          زيارة جديدة
-        </Link>
+        <div className="flex flex-col gap-3">
+          {/* Quick Filters */}
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">كل الوقت</button>
+            <button onClick={() => { setDateFrom(format(startOfMonth(new Date()), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(new Date()), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">هذا الشهر</button>
+            <button onClick={() => { setDateFrom(format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">الشهر السابق</button>
+            <button onClick={() => { setDateFrom(format(startOfMonth(subMonths(new Date(), 5)), 'yyyy-MM-dd')); setDateTo(format(endOfMonth(new Date()), 'yyyy-MM-dd')); }} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700">آخر 6 أشهر</button>
+            
+            <Link
+              to="/visits/new"
+              className="bg-primary text-white px-3 py-1.5 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5 mr-2"
+            >
+              <Plus className="w-4 h-4" />
+              زيارة جديدة
+            </Link>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">من</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:border-primary w-[140px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">إلى</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:border-primary w-[140px]"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

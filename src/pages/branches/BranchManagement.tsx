@@ -12,6 +12,8 @@ interface BranchStats {
   name_en: string | null;
   clientCount: number;
   repCount: number;
+  totalVisits: number;
+  totalCollections: number;
 }
 
 export default function BranchManagement() {
@@ -57,13 +59,28 @@ export default function BranchManagement() {
         .eq('company_id', profile!.company_id)
         .eq('role', 'rep');
 
-      const stats: BranchStats[] = (regionsData || []).map((r: any) => ({
-        id: r.id,
-        name_ar: r.name_ar,
-        name_en: r.name_en,
-        clientCount: (clientsData || []).filter((c: any) => c.region_id === r.id).length,
-        repCount: (repsData || []).filter((rp: any) => rp.region_id === r.id).length,
-      }));
+      // Load visits
+      const { data: visitsData } = await supabase
+        .from('visits')
+        .select('id, client_id, collection_amount')
+        .eq('company_id', profile!.company_id);
+
+      const clientRegionMap = new Map<string, string>();
+      (clientsData || []).forEach((c: any) => { if (c.region_id) clientRegionMap.set(c.id, c.region_id); });
+
+      const stats: BranchStats[] = (regionsData || []).map((r: any) => {
+        const branchVisits = (visitsData || []).filter((v: any) => clientRegionMap.get(v.client_id) === r.id);
+        
+        return {
+          id: r.id,
+          name_ar: r.name_ar,
+          name_en: r.name_en,
+          clientCount: (clientsData || []).filter((c: any) => c.region_id === r.id).length,
+          repCount: (repsData || []).filter((rp: any) => rp.region_id === r.id).length,
+          totalVisits: branchVisits.length,
+          totalCollections: branchVisits.reduce((sum: number, v: any) => sum + (Number(v.collection_amount) || 0), 0)
+        };
+      });
 
       setBranches(stats);
       logInfo('Branches loaded', { count: stats.length });
@@ -200,6 +217,14 @@ export default function BranchManagement() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Briefcase className="w-4 h-4 text-green-500" />
                   <span>{b.repCount} مندوب</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <span>{b.totalVisits} زيارة</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                  <span>{b.totalCollections.toFixed(0)} ر.س محصلة</span>
                 </div>
               </div>
             </div>
