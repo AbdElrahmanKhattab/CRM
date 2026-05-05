@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth, UserProfile } from '../../components/auth/AuthProvider';
 import { useDebug } from '../../components/debug/DebugProvider';
@@ -203,13 +204,21 @@ export default function RepsList() {
                     <span>{repClientsCount} عميل مرتبط</span>
                   </div>
                   
-                  <button 
-                    onClick={() => openAssignmentModal(rep)}
-                    className="text-primary hover:text-primary/80 font-medium text-sm flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-lg"
-                  >
-                    توزيع العملاء
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <Link 
+                      to={`/reps/${rep.id}`}
+                      className="text-gray-600 hover:text-primary font-medium text-sm flex items-center gap-1 bg-gray-100 hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      عرض الملف
+                    </Link>
+                    <button 
+                      onClick={() => openAssignmentModal(rep)}
+                      className="text-primary hover:text-primary/80 font-medium text-sm flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      توزيع العملاء
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

@@ -36,10 +36,10 @@ interface CalendarVisit {
 }
 
 const STATUS_COLORS: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-  completed: { dot: 'bg-green-500', bg: 'bg-green-50 border-green-200', text: 'text-green-700', label: 'مكتملة' },
-  planned:   { dot: 'bg-blue-500',  bg: 'bg-blue-50 border-blue-200',  text: 'text-blue-700',  label: 'مجدولة' },
-  in_progress: { dot: 'bg-amber-500', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'جارية' },
-  cancelled: { dot: 'bg-red-500',   bg: 'bg-red-50 border-red-200',   text: 'text-red-700',   label: 'ملغاة' },
+  completed: { dot: 'bg-green-500', bg: 'bg-green-500', text: 'text-white', label: 'مكتملة' },
+  planned:   { dot: 'bg-blue-500',  bg: 'bg-blue-500',  text: 'text-white',  label: 'مجدولة' },
+  in_progress: { dot: 'bg-amber-500', bg: 'bg-amber-500', text: 'text-white', label: 'جارية' },
+  cancelled: { dot: 'bg-red-500',   bg: 'bg-red-500',   text: 'text-white',   label: 'ملغاة' },
 };
 
 const VISIT_TYPE_LABELS: Record<string, string> = {
@@ -99,6 +99,9 @@ export default function CalendarView() {
         const monthStart = startOfMonth(currentMonth);
         const monthEnd = endOfMonth(currentMonth);
 
+        const dateStart = format(monthStart, 'yyyy-MM-dd');
+        const dateEnd = format(addDays(monthEnd, 1), 'yyyy-MM-dd');
+
         let query = supabase
           .from('visits')
           .select(`
@@ -108,8 +111,7 @@ export default function CalendarView() {
             rep:user_profiles!visits_rep_id_fkey(full_name)
           `)
           .eq('company_id', profile.company_id)
-          .gte('visit_date', format(monthStart, 'yyyy-MM-dd'))
-          .lte('visit_date', format(addDays(monthEnd, 1), 'yyyy-MM-dd'));
+          .or(`and(visit_date.gte.${dateStart},visit_date.lte.${dateEnd}),and(next_appointment.gte.${dateStart},next_appointment.lte.${dateEnd})`);
 
         if (!isManager) {
           query = query.eq('rep_id', profile.id);
@@ -153,9 +155,30 @@ export default function CalendarView() {
   const visitsByDate = useMemo(() => {
     const map: Record<string, CalendarVisit[]> = {};
     visits.forEach((v) => {
-      const key = format(new Date(v.visit_date), 'yyyy-MM-dd');
-      if (!map[key]) map[key] = [];
-      map[key].push(v);
+      // 1. Add historical/completed visit
+      if (v.visit_date) {
+        const key = format(new Date(v.visit_date), 'yyyy-MM-dd');
+        if (!map[key]) map[key] = [];
+        // Only add if it's in the current view's range (the query might return slightly more)
+        map[key].push(v);
+      }
+
+      // 2. Add upcoming appointment (if different from visit date)
+      if (v.next_appointment) {
+        const key = format(new Date(v.next_appointment), 'yyyy-MM-dd');
+        // Prevent duplicate if next_appointment is somehow same as visit_date (unlikely)
+        const isSameAsVisit = v.visit_date && format(new Date(v.visit_date), 'yyyy-MM-dd') === key;
+        
+        if (!isSameAsVisit) {
+          if (!map[key]) map[key] = [];
+          map[key].push({
+            ...v,
+            status: 'planned', // Show as planned on the calendar
+            purpose: `موعد قادم: ${v.purpose || ''}`,
+            visit_date: v.next_appointment // Override for display sorting in day view
+          });
+        }
+      }
     });
     return map;
   }, [visits]);
@@ -272,44 +295,47 @@ export default function CalendarView() {
                       isSelected && 'bg-primary/10 ring-2 ring-primary ring-inset',
                     )}
                   >
-                    <span
-                      className={clsx(
-                        'text-sm font-medium inline-flex items-center justify-center w-7 h-7 rounded-full',
-                        !inMonth && 'text-gray-300',
-                        inMonth && !today && 'text-gray-700',
-                        today && 'bg-primary text-white',
-                      )}
-                    >
-                      {format(day, 'd')}
-                    </span>
-
-                    {/* Visit dots */}
-                    {dayVisits.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-auto pt-1">
-                        {dayVisits.slice(0, 4).map((v) => (
-                          <span
-                            key={v.id}
-                            className={clsx(
-                              'w-2 h-2 rounded-full',
-                              STATUS_COLORS[v.status]?.dot || 'bg-gray-400',
-                            )}
-                            title={v.client?.name_ar || ''}
-                          />
-                        ))}
-                        {dayVisits.length > 4 && (
-                          <span className="text-[10px] text-gray-400 leading-none self-end">
-                            +{dayVisits.length - 4}
-                          </span>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={clsx(
+                          'text-sm font-medium inline-flex items-center justify-center w-7 h-7 rounded-full',
+                          !inMonth && 'text-gray-300',
+                          inMonth && !today && 'text-gray-700',
+                          today && 'bg-primary text-white',
                         )}
-                      </div>
-                    )}
-
-                    {/* Visit count badge (desktop) */}
-                    {dayVisits.length > 0 && (
-                      <span className="absolute top-1.5 left-1.5 hidden md:inline-flex items-center justify-center text-[10px] font-bold bg-primary/10 text-primary rounded-full w-5 h-5">
-                        {dayVisits.length}
+                      >
+                        {format(day, 'd')}
                       </span>
-                    )}
+                      {dayVisits.length > 2 && (
+                        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-md border border-gray-100">
+                          +{dayVisits.length - 2}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Visit bars */}
+                    <div className="mt-1 space-y-1 overflow-hidden">
+                      {dayVisits.slice(0, 2).map((v) => {
+                        const sc = STATUS_COLORS[v.status] || STATUS_COLORS.planned;
+                        const time = format(new Date(v.visit_date), 'h:mm a', { locale: ar });
+                        return (
+                          <div
+                            key={`${v.id}-${v.visit_date}`}
+                            className={clsx(
+                              'text-[10px] leading-tight p-1 rounded border shadow-sm truncate flex items-center gap-1',
+                              sc.bg,
+                              sc.text,
+                              'border-opacity-50'
+                            )}
+                            title={`${v.client?.name_ar || 'بدون عميل'} - ${v.purpose || ''}`}
+                          >
+                            <span className="font-bold opacity-75 shrink-0">{time}</span>
+                            <span className="truncate font-medium">{v.client?.name_ar || 'بدون عميل'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
                   </button>
                 );
               })}

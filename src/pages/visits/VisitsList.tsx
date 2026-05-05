@@ -33,7 +33,7 @@ export default function VisitsList() {
           status,
           latitude,
           longitude,
-          client:clients(name)
+          client:clients(name_ar)
         `)
         .eq('company_id', profile!.company_id)
         .order('visit_date', { ascending: false });
@@ -112,7 +112,7 @@ export default function VisitsList() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-semibold text-gray-900">
-                        {visit.client?.name || 'عميل غير معروف'}
+                        {visit.client?.name_ar || 'عميل غير معروف'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

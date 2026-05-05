@@ -19,6 +19,7 @@ import ProspectDetails from './pages/prospects/ProspectDetails';
 import ProspectForm from './pages/prospects/ProspectForm';
 import MapExplorer from './pages/map/MapExplorer';
 import RepsList from './pages/reps/RepsList';
+import RepDetails from './pages/reps/RepDetails';
 import CalendarView from './pages/calendar/CalendarView';
 import ManagerVisits from './pages/visits/ManagerVisits';
 import BranchManagement from './pages/branches/BranchManagement';
@@ -43,6 +44,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['owner', 'manager', 'supervisor']} />}>
                  <Route path="/users" element={<UsersList />} />
                  <Route path="/reps" element={<RepsList />} />
+                 <Route path="/reps/:id" element={<RepDetails />} />
                  <Route path="/manager-visits" element={<ManagerVisits />} />
                  <Route path="/branches" element={<BranchManagement />} />
                  <Route path="/branch-report" element={<BranchReport />} />
