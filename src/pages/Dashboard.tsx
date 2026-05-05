@@ -7,6 +7,7 @@ import { ar } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Activity, CircleDollarSign, AlertCircle, Users, Briefcase, Calendar, MapPin, RefreshCcw } from 'lucide-react';
 import clsx from 'clsx';
+import AlertsCard from '../components/dashboard/AlertsCard';
 
 type DateFilter = 'today' | 'week' | 'month' | 'year';
 
@@ -67,7 +68,7 @@ export default function Dashboard() {
     if (!profile?.company_id) return;
 
     const channel = supabase
-      .channel('dashboard-visits')
+      .channel(`dashboard-visits-${profile.company_id}`)
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -177,6 +178,8 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
+          <AlertsCard />
+
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

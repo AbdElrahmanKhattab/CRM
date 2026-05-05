@@ -3,6 +3,7 @@ import { Home, Users, UserPlus, MapPin, LogOut, Menu, Map, Briefcase, Calendar, 
 import { useState } from 'react';
 import clsx from 'clsx';
 import { useAuth } from '../auth/AuthProvider';
+import NotificationBell from './NotificationBell';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -98,13 +99,20 @@ export default function AppLayout() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center md:hidden px-4">
+        {/* Mobile header */}
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between md:hidden px-4">
           <button 
             onClick={() => setSidebarOpen(true)}
             className="text-gray-500 hover:text-gray-700 focus:outline-none"
           >
             <Menu className="w-6 h-6" />
           </button>
+          <NotificationBell />
+        </header>
+
+        {/* Desktop header */}
+        <header className="hidden md:flex bg-white border-b border-gray-200 h-14 items-center justify-end px-6">
+          <NotificationBell />
         </header>
 
         <div className="flex-1 overflow-auto bg-gray-50">
