@@ -20,7 +20,8 @@ import {
   Clock, 
   Building2,
   ChevronLeft,
-  Briefcase
+  Briefcase,
+  UserPlus
 } from 'lucide-react';
 import clsx from 'clsx';
 import { formatDistanceToNow, format } from 'date-fns';
