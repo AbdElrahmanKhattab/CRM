@@ -56,6 +56,8 @@ export default function NewVisit() {
             name_ar, 
             category, 
             legacy_code, 
+            latitude,
+            longitude,
             district_id, 
             districts(name_ar), 
             region_id, 
@@ -125,13 +127,21 @@ export default function NewVisit() {
     return publicUrl;
   };
 
-  const validateSaudiBounds = (lat: number, lng: number) => {
-    // Saudi Arabia Approximate Bounding Box
-    // Lat: ~16.0 to 32.5
-    // Lng: ~34.0 to 56.0
-    if (lat >= 16.0 && lat <= 32.5 && lng >= 34.0 && lng <= 56.0) return true;
-    return false;
+  // Haversine formula: returns distance in meters between two lat/lng points
+  const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371000; // Earth's radius in meters
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
+
+  const MAX_DISTANCE_METERS = 500;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,9 +156,13 @@ export default function NewVisit() {
       return;
     }
 
-    if (!validateSaudiBounds(lat, lng)) {
-      alert('الموقع المعطى يقع خارج الحدود الجغرافية للمملكة العربية السعودية. يرجى التحقق من الخرائط.');
-      return;
+    // Proximity check: user must be within 500m of the selected client
+    if (selectedClient?.latitude && selectedClient?.longitude) {
+      const distance = getDistanceMeters(lat, lng, Number(selectedClient.latitude), Number(selectedClient.longitude));
+      if (distance > MAX_DISTANCE_METERS) {
+        alert(`أنت بعيد عن موقع العميل بمسافة ${Math.round(distance)} متر. يجب أن تكون على بعد ${MAX_DISTANCE_METERS} متر أو أقل من موقع العميل لتسجيل الزيارة.`);
+        return;
+      }
     }
 
     try {

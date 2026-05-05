@@ -4,7 +4,7 @@ import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../components/auth/AuthProvider';
+import { useAuth, UserProfile } from '../../components/auth/AuthProvider';
 import { useDebug } from '../../components/debug/DebugProvider';
 import { Client, Prospect, Region } from '../../types';
 import { MapPin, Navigation, User, Layers, Filter } from 'lucide-react';
@@ -70,12 +70,14 @@ export default function MapExplorer() {
   const [clients, setClients] = useState<Client[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
+  const [reps, setReps] = useState<UserProfile[]>([]);
   
   // Filters
   const [showClients, setShowClients] = useState(true);
   const [showProspects, setShowProspects] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedRep, setSelectedRep] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(true);
 
@@ -112,6 +114,17 @@ export default function MapExplorer() {
       if (prospectsRes.error) throw prospectsRes.error;
       if (regionsRes.error) throw regionsRes.error;
 
+      // Load Reps for filter (if manager)
+      if (['owner', 'manager', 'supervisor'].includes(profile!.role)) {
+        const { data: repsData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('company_id', profile!.company_id)
+          .eq('role', 'rep')
+          .order('full_name');
+        if (repsData) setReps(repsData as UserProfile[]);
+      }
+
       setClients(clientsRes.data as Client[]);
       setProspects(prospectsRes.data as Prospect[]);
       setRegions(regionsRes.data as Region[]);
@@ -130,9 +143,10 @@ export default function MapExplorer() {
       const validGPS = isValidKSACoordinate(c.latitude, c.longitude);
       const matchesRegion = !selectedRegion || c.region_id === selectedRegion;
       const matchesCategory = !selectedCategory || c.category === selectedCategory;
-      return validGPS && matchesRegion && matchesCategory;
+      const matchesRep = profile?.role === 'rep' ? c.assigned_rep_id === profile.id : (!selectedRep || c.assigned_rep_id === selectedRep);
+      return validGPS && matchesRegion && matchesCategory && matchesRep;
     });
-  }, [clients, showClients, selectedRegion, selectedCategory]);
+  }, [clients, showClients, selectedRegion, selectedCategory, selectedRep, profile]);
 
   const visibleProspects = useMemo(() => {
     if (!showProspects) return [];
@@ -140,9 +154,10 @@ export default function MapExplorer() {
       const validGPS = isValidKSACoordinate(p.latitude, p.longitude);
       const matchesRegion = !selectedRegion || p.region_id === selectedRegion;
       const matchesCategory = !selectedCategory || p.category === selectedCategory;
-      return validGPS && matchesRegion && matchesCategory;
+      const matchesRep = profile?.role === 'rep' ? p.assigned_rep_id === profile.id : (!selectedRep || p.assigned_rep_id === selectedRep);
+      return validGPS && matchesRegion && matchesCategory && matchesRep;
     });
-  }, [prospects, showProspects, selectedRegion, selectedCategory]);
+  }, [prospects, showProspects, selectedRegion, selectedCategory, selectedRep, profile]);
 
   return (
     <div className="h-[calc(100vh-4rem)] md:h-screen w-full flex flex-col pt-4 sm:pt-0 relative overflow-hidden">
@@ -197,6 +212,22 @@ export default function MapExplorer() {
                 ))}
               </select>
             </div>
+
+            {['owner', 'manager', 'supervisor'].includes(profile?.role || '') && (
+              <div className="flex items-center gap-2 text-sm border-r border-gray-200 pr-3">
+                <User className="w-4 h-4 text-gray-400" />
+                <select
+                  value={selectedRep}
+                  onChange={(e) => setSelectedRep(e.target.value)}
+                  className="bg-transparent font-medium focus:outline-none text-gray-600 border-b border-dashed border-gray-300 pb-0.5"
+                >
+                  <option value="">كل المناديب</option>
+                  {reps.map(rep => (
+                    <option key={rep.id} value={rep.id}>{rep.full_name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 text-sm border-r border-gray-200 pr-3">
               <Layers className="w-4 h-4 text-gray-400" />

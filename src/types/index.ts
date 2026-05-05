@@ -26,6 +26,7 @@ export interface Client {
   grade: ClientGrade;
   region_id?: string;
   district_id?: string;
+  assigned_rep_id?: string;
   address?: string;
   latitude?: number;
   longitude?: number;
@@ -61,6 +62,7 @@ export interface Prospect {
   target_client_name: string;
   category?: ClientCategory;
   phone?: string;
+  assigned_rep_id?: string;
   contact_person?: string;
   region_id?: string;
   district_name?: string;

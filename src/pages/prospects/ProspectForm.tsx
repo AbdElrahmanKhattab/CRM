@@ -300,12 +300,12 @@ export default function ProspectForm() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">المنطقة</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">الفرع</label>
               <select
                 {...register('region_id')}
                 className="w-full rounded-xl border-gray-300 focus:border-primary focus:ring-primary text-gray-900 p-3 bg-gray-50/50"
               >
-                <option value="">-- اختر منطقة --</option>
+                <option value="">-- اختر فرع --</option>
                 {regions.map(r => (
                   <option key={r.id} value={r.id}>{r.name_ar}</option>
                 ))}

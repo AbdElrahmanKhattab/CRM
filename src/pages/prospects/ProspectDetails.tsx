@@ -242,7 +242,7 @@ export default function ProspectDetails() {
                   <MapPin className="w-4 h-4 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">الموقع (المنطقة / الحي)</p>
+                  <p className="text-gray-500 mb-1">الموقع (الفرع / الحي)</p>
                   <p className="font-medium text-gray-900">
                     {/* @ts-ignore */}
                     {prospect.region?.name_ar || 'غير محدد'} 

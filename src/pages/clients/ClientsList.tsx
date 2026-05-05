@@ -6,6 +6,7 @@ import { Client, Region, ClientCategory, ClientGrade } from '../../types';
 import { Search, Filter, Plus, ChevronLeft, MapPin, Building2, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
+import { UserProfile } from '../../components/auth/AuthProvider';
 
 const categoryLabels: Record<ClientCategory, string> = {
   beauty: 'تجميل',
@@ -28,6 +29,7 @@ export default function ClientsList() {
   
   const [clients, setClients] = useState<Client[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
+  const [reps, setReps] = useState<UserProfile[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   
@@ -36,6 +38,7 @@ export default function ClientsList() {
   const [selectedCategory, setSelectedCategory] = useState<ClientCategory | ''>('');
   const [selectedGrade, setSelectedGrade] = useState<ClientGrade | ''>('');
   const [selectedRegion, setSelectedRegion] = useState<string>('');
+  const [selectedRep, setSelectedRep] = useState<string>('');
   const [showDeactivated, setShowDeactivated] = useState(false);
 
   useEffect(() => {
@@ -56,6 +59,17 @@ export default function ClientsList() {
 
       if (regionsError) throw regionsError;
       setRegions(regionsData as Region[]);
+
+      // Load Reps for filter (if manager)
+      if (['owner', 'manager', 'supervisor'].includes(profile!.role)) {
+        const { data: repsData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('company_id', profile!.company_id)
+          .eq('role', 'rep')
+          .order('full_name');
+        if (repsData) setReps(repsData as UserProfile[]);
+      }
 
       // Load Clients
       const { data: clientsData, error: clientsError } = await supabase
@@ -85,6 +99,8 @@ export default function ClientsList() {
     if (selectedCategory && client.category !== selectedCategory) return false;
     if (selectedGrade && client.grade !== selectedGrade) return false;
     if (selectedRegion && client.region_id !== selectedRegion) return false;
+    if (profile?.role === 'rep' && client.assigned_rep_id !== profile.id) return false;
+    if (selectedRep && client.assigned_rep_id !== selectedRep) return false;
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -145,7 +161,7 @@ export default function ClientsList() {
           </div>
           
           <div>
-            <label className="block text-xs text-gray-500 mb-1">المنطقة</label>
+            <label className="block text-xs text-gray-500 mb-1">الفرع</label>
             <select
               value={selectedRegion}
               onChange={(e) => setSelectedRegion(e.target.value)}
@@ -157,6 +173,22 @@ export default function ClientsList() {
               ))}
             </select>
           </div>
+
+          {['owner', 'manager', 'supervisor'].includes(profile?.role || '') && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">المندوب</label>
+              <select
+                value={selectedRep}
+                onChange={(e) => setSelectedRep(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary outline-none"
+              >
+                <option value="">كل المناديب</option>
+                {reps.map(rep => (
+                  <option key={rep.id} value={rep.id}>{rep.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">التصنيف</label>
@@ -173,12 +205,11 @@ export default function ClientsList() {
               <option value="unclassified">غير مصنف</option>
             </select>
           </div>
-          
-          <div className="flex items-end">
+          <div className="md:col-span-4 flex justify-end">
              <button
                 onClick={() => setShowDeactivated(!showDeactivated)}
                 className={clsx(
-                  "w-full flex items-center justify-center gap-2 p-2 border rounded-lg transition-colors",
+                  "w-fit flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition-colors",
                   showDeactivated ? "border-primary text-primary bg-primary/5" : "border-gray-300 text-gray-600 hover:bg-gray-50"
                 )}
              >

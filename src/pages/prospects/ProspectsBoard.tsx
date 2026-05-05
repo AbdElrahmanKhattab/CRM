@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../components/auth/AuthProvider';
+import { useAuth, UserProfile } from '../../components/auth/AuthProvider';
 import { useDebug } from '../../components/debug/DebugProvider';
 import { Prospect, LeadStatus, InterestLevel } from '../../types';
 import { Plus, Building2, MapPin, Target, UserCircle2, ShieldAlert } from 'lucide-react';
@@ -43,6 +43,8 @@ export default function ProspectsBoard() {
   const { logError, logInfo } = useDebug();
   
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [reps, setReps] = useState<UserProfile[]>([]);
+  const [selectedRep, setSelectedRep] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -66,6 +68,18 @@ export default function ProspectsBoard() {
 
       if (error) throw error;
       setProspects(data as Prospect[]);
+
+      // Load Reps for filter (if manager)
+      if (['owner', 'manager', 'supervisor'].includes(profile!.role)) {
+        const { data: repsData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('company_id', profile!.company_id)
+          .eq('role', 'rep')
+          .order('full_name');
+        if (repsData) setReps(repsData as UserProfile[]);
+      }
+
       logInfo('Prospects loaded', { count: data.length });
     } catch (error) {
       logError('Error loading prospects', error);
@@ -83,9 +97,16 @@ export default function ProspectsBoard() {
     );
   }
 
+  // Filter prospects
+  const filteredProspects = prospects.filter(p => {
+    if (profile?.role === 'rep' && p.assigned_rep_id !== profile.id) return false;
+    if (selectedRep && p.assigned_rep_id !== selectedRep) return false;
+    return true;
+  });
+
   // Group prospects by status
   const groupedProspects = COLUMNS.reduce((acc, col) => {
-    acc[col.id] = prospects.filter(p => (p.lead_status || 'potential') === col.id);
+    acc[col.id] = filteredProspects.filter(p => (p.lead_status || 'potential') === col.id);
     return acc;
   }, {} as Record<LeadStatus, Prospect[]>);
 
@@ -98,13 +119,28 @@ export default function ProspectsBoard() {
           <p className="text-sm text-gray-500 mt-1">تتبع رحلة العملاء المستهدفين (Pipeline)</p>
         </div>
         
-        <Link
-          to="/prospects/new"
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>إضافة مستهدف</span>
-        </Link>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {['owner', 'manager', 'supervisor'].includes(profile?.role || '') && (
+            <select
+              value={selectedRep}
+              onChange={(e) => setSelectedRep(e.target.value)}
+              className="p-2 text-sm border border-gray-300 rounded-lg focus:ring-primary focus:border-primary outline-none"
+            >
+              <option value="">كل المناديب</option>
+              {reps.map(rep => (
+                <option key={rep.id} value={rep.id}>{rep.full_name}</option>
+              ))}
+            </select>
+          )}
+
+          <Link
+            to="/prospects/new"
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors shrink-0"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">إضافة مستهدف</span>
+          </Link>
+        </div>
       </div>
 
       {/* Kanban Board */}

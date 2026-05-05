@@ -122,6 +122,8 @@ CREATE TABLE visit_photos (
     visit_id UUID REFERENCES visits(id) ON DELETE CASCADE NOT NULL,
     photo_url TEXT NOT NULL,
     photo_type VARCHAR(50),
+    latitude NUMERIC,
+    longitude NUMERIC,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -180,7 +182,14 @@ CREATE POLICY "Update own visits" ON visits
 
 -- Apply similar policies to Regions, Districts, Prospects, Visit Photos
 CREATE POLICY "View company regions" ON regions FOR SELECT USING (company_id = current_user_company_id());
+CREATE POLICY "Insert company regions" ON regions FOR INSERT WITH CHECK (company_id = current_user_company_id());
+CREATE POLICY "Update company regions" ON regions FOR UPDATE USING (company_id = current_user_company_id());
+CREATE POLICY "Delete company regions" ON regions FOR DELETE USING (company_id = current_user_company_id());
+
 CREATE POLICY "View company districts" ON districts FOR SELECT USING (company_id = current_user_company_id());
+CREATE POLICY "Insert company districts" ON districts FOR INSERT WITH CHECK (company_id = current_user_company_id());
+CREATE POLICY "Update company districts" ON districts FOR UPDATE USING (company_id = current_user_company_id());
+CREATE POLICY "Delete company districts" ON districts FOR DELETE USING (company_id = current_user_company_id());
 CREATE POLICY "View company prospects" ON prospects FOR SELECT USING (company_id = current_user_company_id());
 CREATE POLICY "Insert company prospects" ON prospects FOR INSERT WITH CHECK (company_id = current_user_company_id());
 CREATE POLICY "Update company prospects" ON prospects FOR UPDATE USING (company_id = current_user_company_id());

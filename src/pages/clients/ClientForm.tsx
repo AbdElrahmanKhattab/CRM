@@ -285,12 +285,12 @@ export default function ClientForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">الفرع</label>
               <select
                 {...register('region_id')}
                 className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="">-- اختر المنطقة --</option>
+                <option value="">-- اختر الفرع --</option>
                 {regions.map(r => <option key={r.id} value={r.id}>{r.name_ar}</option>)}
               </select>
             </div>

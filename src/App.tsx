@@ -18,6 +18,11 @@ import ProspectsBoard from './pages/prospects/ProspectsBoard';
 import ProspectDetails from './pages/prospects/ProspectDetails';
 import ProspectForm from './pages/prospects/ProspectForm';
 import MapExplorer from './pages/map/MapExplorer';
+import RepsList from './pages/reps/RepsList';
+import CalendarView from './pages/calendar/CalendarView';
+import ManagerVisits from './pages/visits/ManagerVisits';
+import BranchManagement from './pages/branches/BranchManagement';
+import BranchReport from './pages/branches/BranchReport';
 function App() {
   return (
     <AuthProvider>
@@ -35,10 +40,15 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['owner', 'manager']} />}>
                 <Route path="/dashboard" element={<Dashboard />} />
               </Route>
-              <Route element={<ProtectedRoute allowedRoles={['owner', 'manager']} />}>
+              <Route element={<ProtectedRoute allowedRoles={['owner', 'manager', 'supervisor']} />}>
                  <Route path="/users" element={<UsersList />} />
+                 <Route path="/reps" element={<RepsList />} />
+                 <Route path="/manager-visits" element={<ManagerVisits />} />
+                 <Route path="/branches" element={<BranchManagement />} />
+                 <Route path="/branch-report" element={<BranchReport />} />
               </Route>
               <Route path="/visits" element={<VisitsList />} />
+              <Route path="/calendar" element={<CalendarView />} />
               <Route path="/visits/new" element={<NewVisit />} />
               <Route path="/visits/:id" element={<VisitDetails />} />
               

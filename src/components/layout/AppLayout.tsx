@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Users, UserPlus, MapPin, LogOut, Menu, Map } from 'lucide-react';
+import { Home, Users, UserPlus, MapPin, LogOut, Menu, Map, Briefcase, Calendar, ClipboardList, Building2, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
 import { useAuth } from '../auth/AuthProvider';
@@ -11,10 +11,16 @@ export default function AppLayout() {
 
   const navigation = [
     { name: 'الرئيسية', href: '/dashboard', icon: Home, roles: ['owner', 'manager'] },
-    { name: 'الزيارات', href: '/visits', icon: MapPin, roles: ['owner', 'manager', 'supervisor', 'rep'] },
+    { name: 'متابعة الزيارات', href: '/manager-visits', icon: ClipboardList, roles: ['owner', 'manager', 'supervisor'] },
+    { name: 'الزيارات', href: '/visits', icon: MapPin, roles: ['rep'] },
+    { name: 'التقويم', href: '/calendar', icon: Calendar, roles: ['owner', 'manager', 'supervisor', 'rep'] },
     { name: 'العملاء', href: '/clients', icon: Users, roles: ['owner', 'manager', 'supervisor'] },
+    { name: 'المناديب', href: '/reps', icon: Briefcase, roles: ['owner', 'manager', 'supervisor'] },
+    { name: 'المستخدمون', href: '/users', icon: UserPlus, roles: ['owner', 'manager'] },
     { name: 'العملاء المحتملين', href: '/prospects', icon: UserPlus, roles: ['owner', 'manager', 'supervisor', 'rep'] },
     { name: 'الخريطة', href: '/map', icon: Map, roles: ['owner', 'manager', 'supervisor', 'rep'] },
+    { name: 'الفروع', href: '/branches', icon: Building2, roles: ['owner', 'manager'] },
+    { name: 'تقارير الفروع', href: '/branch-report', icon: BarChart3, roles: ['owner', 'manager'] },
   ];
 
   const filteredNavigation = navigation.filter(item => 
